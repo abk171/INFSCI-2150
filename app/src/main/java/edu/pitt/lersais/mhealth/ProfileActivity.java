@@ -82,9 +82,11 @@ public class ProfileActivity extends AppCompatActivity implements View.OnClickLi
         // You can construct an instance of DownloadImageTask with ImageView instance,
         // and then call execute function to download the image from Firebase Storage
         // e.g. new DownloadImageTask(photoImageView).execute(photoUrl)
-        String uid = currentUser.getUid();
-
-        nameEditText.setText(currentUser.getDisplayName());
+        String uid = mAuth.getCurrentUser().getUid();
+        String displayName = currentUser.getDisplayName();
+        if (displayName != null) {
+            nameEditText.setText(currentUser.getDisplayName());
+        }
 
         StorageReference reference = FirebaseStorage.getInstance().getReference();
         StorageReference imageRef = reference.child("images/profiles/" + uid + ".jpg");
@@ -92,6 +94,7 @@ public class ProfileActivity extends AppCompatActivity implements View.OnClickLi
             @Override
             public void onSuccess(Uri uri) {
                 new DownloadImageTask(photoImageView).execute(uri.toString());
+                //This method does not work
             }
         }).addOnFailureListener(new OnFailureListener() {
             @Override
@@ -128,7 +131,6 @@ public class ProfileActivity extends AppCompatActivity implements View.OnClickLi
             }
 
             String displayName = nameEditText.getText().toString();
-
             StorageReference reference = FirebaseStorage.getInstance().getReference();
             StorageReference imageRef = reference.child("images/profile/" + uid + ".jpg");
             // 2. call the method provided by Firebase Storage to upload
@@ -151,8 +153,35 @@ public class ProfileActivity extends AppCompatActivity implements View.OnClickLi
             });
 
             // 3. get the photo url and update the user profile
-            FirebaseUser currentUser = mAuth.getCurrentUser();
-            
+            uploadTask.continueWithTask(new Continuation<UploadTask.TaskSnapshot, Task<Uri>>() {
+                @Override
+                public Task<Uri> then(@NonNull Task<UploadTask.TaskSnapshot> task) throws Exception {
+                    if (!task.isSuccessful()) {
+                        throw task.getException();
+                    }
+                    else {
+                        return imageRef.getDownloadUrl();
+                    }
+                }
+            }).addOnFailureListener(new OnFailureListener() {
+                @Override
+                public void onFailure(@NonNull Exception e) {
+                    Log.e(TAG, "Unable to download Uri");
+                    Toast.makeText(ProfileActivity.this, "Unable to download picture", Toast.LENGTH_SHORT).show();
+                }
+            }).addOnSuccessListener(new OnSuccessListener<Uri>() {
+                @Override
+                public void onSuccess(Uri uri) {
+                    FirebaseUser currentUser = mAuth.getCurrentUser();
+                    UserProfileChangeRequest upcr = new UserProfileChangeRequest.Builder()
+                            .setDisplayName(displayName)
+                            .setPhotoUri(uri)
+                            .build();
+                    currentUser.updateProfile(upcr);
+                    Toast.makeText(ProfileActivity.this, "Your profile has been updated!", Toast.LENGTH_SHORT).show();
+                }
+            });
+
 
             // IMPORTANT: as storage service is integrated, store the photo in the following url in the Firebase Storage.
             // "images/profile/[USER'S UID].jpg"
