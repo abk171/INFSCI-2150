@@ -5,12 +5,15 @@ import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
@@ -91,12 +94,56 @@ public class SettingActivity extends AppCompatActivity implements View.OnClickLi
     private void resetPasswordByInput() {
         // TODO: Task 4.1 reset password by user's input
         // Tips: check the usage of related method provided by Firebase Authentication
+        String currentPass = editTextCurrentPwd.getText().toString().trim();
+        String newPass1 = editTextNewPwd.getText().toString().trim();
+        String newPass2 = editTextCurrentPwd.getText().toString().trim();
 
+        if (currentPass.isEmpty() || newPass1.isEmpty() || newPass2.isEmpty()) {
+            Log.e(TAG, "Invalid password!");
+            Toast.makeText(this, "Invalid password. Try again!", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        if (!newPass1.equals(newPass2)) {
+            Log.e(TAG, "Passwords don't match");
+            Toast.makeText(this, "Passwords don't match. Try again!", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        FirebaseUser currentUser = mAuth.getCurrentUser();
+        currentUser.updatePassword(newPass1).addOnSuccessListener(new OnSuccessListener<Void>() {
+            @Override
+            public void onSuccess(Void unused) {
+                Log.d(TAG, "Password updated successfully");
+                Toast.makeText(SettingActivity.this, "Password updated successfully", Toast.LENGTH_SHORT).show();
+            }
+        }).addOnFailureListener(new OnFailureListener() {
+            @Override
+            public void onFailure(@NonNull Exception e) {
+                Log.e(TAG, "Password could not be updated");
+                Toast.makeText(SettingActivity.this, "Password couldn't be updated", Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     private void resetPasswordByEmail() {
         // TODO: Task 4.2 reset password by user's email
         // Tips: check the usage of related method provided by Firebase Authentication
+
+        FirebaseUser currentUser = mAuth.getCurrentUser();
+        mAuth.sendPasswordResetEmail(currentUser.getEmail()).addOnCompleteListener(new OnCompleteListener<Void>() {
+            @Override
+            public void onComplete(@NonNull Task<Void> task) {
+                if (task.isSuccessful()) {
+                    Log.d(TAG, "Sent password reset e-mail");
+                    Toast.makeText(SettingActivity.this, "Password reset email sent", Toast.LENGTH_SHORT).show();
+                }
+                else {
+                    Log.e(TAG, "Password reset e-mail could not be sent");
+                    Toast.makeText(SettingActivity.this, "Unable to sent reset email", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
 
     }
 }
