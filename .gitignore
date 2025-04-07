@@ -1,0 +1,33 @@
+# Android specific files
+.gradle/
+local.properties
+.idea/
+build/
+captures/
+output/
+*.iml
+
+# Keystore files (for signing)
+*.jks
+*.keystore
+
+# Firebase Configuration
+app/google-services.json
+
+# Mac and Windows system files
+.DS_Store
+Thumbs.db
+
+# Log files
+*.log
+
+# Gradle specific
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Generated files
+*.apk
+*.ap_
+*.dex
+
