@@ -111,6 +111,9 @@ public class MainActivity extends AppCompatActivity {
         // 1) call the sign out method provided by Firebase Authentication
         mAuth.signOut();
         // 2) jump to the login view
+        Intent intent = new Intent(MainActivity.this, LoginActivity.class);
+        startActivity(intent);
+        overridePendingTransition(R.anim.push_left_in, R.anim.push_left_out);
 
     }
 

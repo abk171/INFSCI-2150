@@ -2,7 +2,9 @@ package edu.pitt.lersais.mhealth;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.database.Cursor;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.drawable.BitmapDrawable;
 import android.net.Uri;
 import android.os.Bundle;
@@ -93,8 +95,44 @@ public class ProfileActivity extends AppCompatActivity implements View.OnClickLi
             // TODO: 3.1-3.2 implement the update function for profile information, namely, name and photo.
             // Tips:
             // 1. acquire the image and upload the photo to the storage
+            photoImageView.setDrawingCacheEnabled(true);
+            photoImageView.buildDrawingCache();
+            Bitmap bitmap = ((BitmapDrawable) photoImageView.getDrawable()).getBitmap();
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 100, baos);
+            byte[] data = baos.toByteArray();
+
+            String uid = mAuth.getCurrentUser().getUid();
+            if (uid.isEmpty()) {
+                Log.e(TAG, "uid is null");
+            }
+
+            String displayName = nameEditText.getText().toString();
+
+            StorageReference reference = FirebaseStorage.getInstance().getReference();
+            StorageReference imageRef = reference.child(String.format("images/profile/%s.jpg", uid));
             // 2. call the method provided by Firebase Storage to upload
+            UploadTask uploadTask = imageRef.putBytes(data);
+
+            uploadTask.addOnFailureListener(new OnFailureListener() {
+                @Override
+                public void onFailure(@NonNull Exception exception) {
+                    // Handle unsuccessful uploads
+                    Toast.makeText(ProfileActivity.this, "Unable to upload photo", Toast.LENGTH_SHORT).show();
+                    Log.e(TAG, "onFailure: Unable to upload profile photo", exception);
+                }
+            }).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
+                @Override
+                public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
+                    // taskSnapshot.getMetadata() contains file metadata such as size, content-type, etc.
+                    // ...
+                    Toast.makeText(ProfileActivity.this, "Successfully uploaded photo!", Toast.LENGTH_SHORT).show();
+                }
+            });
+
+
             // 3. get the photo url and update the user profile
+
             // IMPORTANT: as storage service is integrated, store the photo in the following url in the Firebase Storage.
             // "images/profile/[USER'S UID].jpg"
 
@@ -104,7 +142,9 @@ public class ProfileActivity extends AppCompatActivity implements View.OnClickLi
 
         } else if (i == R.id.button_chose_photo) {
             // TODO: Task 3.1-3.2 implement the function to allow user choose photo from local album.
-
+            Intent intent = new Intent(Intent.ACTION_PICK,
+                    android.provider.MediaStore.Images.Media.INTERNAL_CONTENT_URI);
+            startActivityForResult(intent, REQUEST_CODE_FOR_GALLERY);
         }
     }
 
@@ -112,6 +152,17 @@ public class ProfileActivity extends AppCompatActivity implements View.OnClickLi
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         // TODO: get the photo that user choose and display
+        switch(requestCode) {
+            case REQUEST_CODE_FOR_GALLERY:
+                if (resultCode == RESULT_OK) {
+                    Uri selectedImage = data.getData();
+                    photoImageView.setImageURI(selectedImage);
+                    Toast.makeText(this, "Photo selection success!", Toast.LENGTH_SHORT).show();
+                } else if (resultCode == RESULT_CANCELED) {
+                    Toast.makeText(this, "Abort", Toast.LENGTH_SHORT).show();
+                    Log.d(TAG, "onActivityResult: Did not select photo");
+                }
+        }
 
     }
 }
