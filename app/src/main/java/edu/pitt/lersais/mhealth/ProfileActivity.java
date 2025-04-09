@@ -89,7 +89,7 @@ public class ProfileActivity extends AppCompatActivity implements View.OnClickLi
         }
 
         StorageReference reference = FirebaseStorage.getInstance().getReference();
-        StorageReference imageRef = reference.child("images/profiles/" + uid + ".jpg");
+        StorageReference imageRef = reference.child("images/profile/" + uid + ".jpg");
         imageRef.getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
             @Override
             public void onSuccess(Uri uri) {
@@ -179,6 +179,7 @@ public class ProfileActivity extends AppCompatActivity implements View.OnClickLi
                             .build();
                     currentUser.updateProfile(upcr);
                     Toast.makeText(ProfileActivity.this, "Your profile has been updated!", Toast.LENGTH_SHORT).show();
+//                    displayNameAndPhoto(currentUser);
                 }
             });
 

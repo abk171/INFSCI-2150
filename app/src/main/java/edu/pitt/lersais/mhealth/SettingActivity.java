@@ -15,7 +15,9 @@ import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
+import com.google.firebase.auth.AuthCredential;
 import com.google.firebase.auth.AuthResult;
+import com.google.firebase.auth.EmailAuthProvider;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 
@@ -66,6 +68,11 @@ public class SettingActivity extends AppCompatActivity implements View.OnClickLi
             }
             findViewById(R.id.setting_button_reset_password).setOnClickListener(this);
             findViewById(R.id.setting_button_reset_password_email).setOnClickListener(this);
+            // these were not set originally
+            editTextCurrentPwd =  findViewById(R.id.setting_edit_current_pwd);
+            editTextNewPwd = findViewById(R.id.setting_edit_new_pwd);
+            editTextConfirmPwd = findViewById(R.id.setting_edit_confirm_pwd);
+
         }
     }
 
@@ -96,13 +103,14 @@ public class SettingActivity extends AppCompatActivity implements View.OnClickLi
         // Tips: check the usage of related method provided by Firebase Authentication
         String currentPass = editTextCurrentPwd.getText().toString().trim();
         String newPass1 = editTextNewPwd.getText().toString().trim();
-        String newPass2 = editTextCurrentPwd.getText().toString().trim();
+        String newPass2 = editTextConfirmPwd.getText().toString().trim();
 
         if (currentPass.isEmpty() || newPass1.isEmpty() || newPass2.isEmpty()) {
             Log.e(TAG, "Invalid password!");
             Toast.makeText(this, "Invalid password. Try again!", Toast.LENGTH_SHORT).show();
             return;
         }
+
 
         if (!newPass1.equals(newPass2)) {
             Log.e(TAG, "Passwords don't match");
@@ -111,19 +119,33 @@ public class SettingActivity extends AppCompatActivity implements View.OnClickLi
         }
 
         FirebaseUser currentUser = mAuth.getCurrentUser();
-        currentUser.updatePassword(newPass1).addOnSuccessListener(new OnSuccessListener<Void>() {
+        AuthCredential credential = EmailAuthProvider.getCredential(currentUser.getEmail(), currentPass);
+//
+        currentUser.reauthenticate(credential).addOnCompleteListener(new OnCompleteListener<Void>() {
             @Override
-            public void onSuccess(Void unused) {
-                Log.d(TAG, "Password updated successfully");
-                Toast.makeText(SettingActivity.this, "Password updated successfully", Toast.LENGTH_SHORT).show();
-            }
-        }).addOnFailureListener(new OnFailureListener() {
-            @Override
-            public void onFailure(@NonNull Exception e) {
-                Log.e(TAG, "Password could not be updated");
-                Toast.makeText(SettingActivity.this, "Password couldn't be updated", Toast.LENGTH_SHORT).show();
+            public void onComplete(@NonNull Task<Void> task) {
+                if (!task.isSuccessful()) {
+                    Toast.makeText(SettingActivity.this, "Incorrect current password", Toast.LENGTH_SHORT).show();
+                    Log.e(TAG, "onFailure: Password was entered incorrectly!", task.getException());
+                }
+                else {
+                    currentUser.updatePassword(newPass1).addOnCompleteListener(new OnCompleteListener<Void>() {
+                        @Override
+                        public void onComplete(@NonNull Task<Void> task) {
+                            if (!task.isSuccessful())  {
+                                Toast.makeText(SettingActivity.this, "Unable to update password", Toast.LENGTH_SHORT).show();
+                                Log.e(TAG, "onComplete: Unable to update password", task.getException());
+                            }
+                            else {
+                                Toast.makeText(SettingActivity.this, "Password updated successfully!", Toast.LENGTH_SHORT).show();
+                            }
+                        }
+                    });
+                }
             }
         });
+
+
     }
 
     private void resetPasswordByEmail() {

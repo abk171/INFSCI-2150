@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="16dp">
+
+    <!-- SINGLE CHILD inside ScrollView -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <!-- Page Title -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Medical Record Edit"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="16dp" />
+
+        <!-- === Section: General === -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="General"
+            android:textStyle="bold"
+            android:textSize="16sp"
+            android:layout_marginBottom="8dp" />
+
+        <!-- Name -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="12dp">
+            <TextView android:layout_width="100dp" android:layout_height="wrap_content"
+                android:text="Name:" android:gravity="center_vertical" android:paddingEnd="8dp"/>
+            <EditText android:id="@+id/name" android:layout_width="0dp" android:layout_height="wrap_content"
+                android:layout_weight="1" android:inputType="textPersonName"/>
+        </LinearLayout>
+
+        <!-- Date of Birth -->
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:layout_marginBottom="12dp">
+            <TextView android:layout_width="100dp" android:layout_height="wrap_content"
+                android:text="Date of Birth:" android:gravity="center_vertical" android:paddingEnd="8dp"/>
+            <EditText android:id="@+id/date_of_birth" android:layout_width="0dp" android:layout_height="wrap_content"
+                android:layout_weight="1" android:inputType="date"/>
+        </LinearLayout>
+
+        <!-- Sex -->
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="Sex:" android:layout_marginBottom="4dp"/>
+        <RadioGroup android:id="@+id/gender_group" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="12dp">
+            <RadioButton android:id="@+id/radio_male" android:layout_width="wrap_content"
+                android:layout_height="wrap_content" android:text="Male"/>
+            <RadioButton android:id="@+id/radio_female" android:layout_width="wrap_content"
+                android:layout_height="wrap_content" android:text="Female"/>
+        </RadioGroup>
+
+        <!-- Marital Status -->
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="Marital Status:" android:layout_marginBottom="4dp"/>
+        <RadioGroup android:id="@+id/marital_status_group" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="12dp">
+            <RadioButton android:id="@+id/radio_single" android:layout_width="wrap_content"
+                android:layout_height="wrap_content" android:text="Single"/>
+            <RadioButton android:id="@+id/radio_married" android:layout_width="wrap_content"
+                android:layout_height="wrap_content" android:text="Married"/>
+            <RadioButton android:id="@+id/radio_divorced" android:layout_width="wrap_content"
+                android:layout_height="wrap_content" android:text="Divorced"/>
+            <RadioButton android:id="@+id/radio_widowed" android:layout_width="wrap_content"
+                android:layout_height="wrap_content" android:text="Widowed"/>
+        </RadioGroup>
+
+        <!-- Occupation -->
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:layout_marginBottom="12dp">
+            <TextView android:layout_width="100dp" android:layout_height="wrap_content"
+                android:text="Occupation:" android:gravity="center_vertical" android:paddingEnd="8dp"/>
+            <EditText android:id="@+id/occupation" android:layout_width="0dp" android:layout_height="wrap_content"
+                android:layout_weight="1" android:inputType="text"/>
+        </LinearLayout>
+
+        <!-- Contact -->
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:layout_marginBottom="16dp">
+            <TextView android:layout_width="100dp" android:layout_height="wrap_content"
+                android:text="Contact:" android:gravity="center_vertical" android:paddingEnd="8dp"/>
+            <EditText android:id="@+id/contact" android:layout_width="0dp" android:layout_height="wrap_content"
+                android:layout_weight="1" android:inputType="phone"/>
+        </LinearLayout>
+
+        <!-- === Section: Past Medical History === -->
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="Past Medical History" android:textStyle="bold" android:textSize="16sp"
+            android:layout_marginTop="16dp" android:layout_marginBottom="8dp"/>
+
+        <!-- Allergies -->
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:layout_marginBottom="12dp">
+            <TextView android:layout_width="100dp" android:layout_height="wrap_content"
+                android:text="Allergies:" android:gravity="top" android:paddingEnd="8dp"/>
+            <EditText android:id="@+id/allergies" android:layout_width="0dp" android:layout_height="wrap_content"
+                android:layout_weight="1" android:minLines="2" android:inputType="textMultiLine"/>
+        </LinearLayout>
+
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="Check those questions to which your answer is yes" android:layout_marginBottom="8dp"/>
+        <CheckBox android:id="@+id/checkbox_heart_attack" android:layout_width="wrap_content"
+            android:layout_height="wrap_content" android:text="Heart attack"/>
+        <CheckBox android:id="@+id/checkbox_rheumatic_fever" android:layout_width="wrap_content"
+            android:layout_height="wrap_content" android:text="Rheumatic Fever"/>
+        <CheckBox android:id="@+id/checkbox_heart_murmur" android:layout_width="wrap_content"
+            android:layout_height="wrap_content" android:text="Heart murmur"/>
+
+        <!-- === Section: Family Diseases === -->
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="Family Diseases" android:textStyle="bold" android:textSize="16sp"
+            android:layout_marginTop="16dp" android:layout_marginBottom="8dp"/>
+        <!-- Father -->
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:layout_marginBottom="12dp">
+            <TextView android:layout_width="100dp" android:layout_height="wrap_content"
+                android:text="Father:" android:gravity="center_vertical" android:paddingEnd="8dp"/>
+            <EditText android:id="@+id/family_father" android:layout_width="0dp" android:layout_height="wrap_content"
+                android:layout_weight="1" android:inputType="text"/>
+        </LinearLayout>
+
+        <!-- Mother -->
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:layout_marginBottom="12dp">
+            <TextView android:layout_width="100dp" android:layout_height="wrap_content"
+                android:text="Mother:" android:gravity="center_vertical" android:paddingEnd="8dp"/>
+            <EditText android:id="@+id/family_mother" android:layout_width="0dp" android:layout_height="wrap_content"
+                android:layout_weight="1" android:inputType="text"/>
+        </LinearLayout>
+
+        <!-- Sibling -->
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:layout_marginBottom="16dp">
+            <TextView android:layout_width="100dp" android:layout_height="wrap_content"
+                android:text="Sibling:" android:gravity="center_vertical" android:paddingEnd="8dp"/>
+            <EditText android:id="@+id/family_sibling" android:layout_width="0dp" android:layout_height="wrap_content"
+                android:layout_weight="1" android:inputType="text"/>
+        </LinearLayout>
+
+        <!-- === Section: Habits === -->
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="Habits" android:textStyle="bold" android:textSize="16sp"
+            android:layout_marginBottom="8dp"/>
+
+        <!-- Alcohol -->
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:layout_marginBottom="12dp">
+            <TextView android:layout_width="100dp" android:layout_height="wrap_content"
+                android:text="Alcohol" android:gravity="center_vertical" android:paddingEnd="8dp"/>
+            <RadioGroup android:id="@+id/alcohol_group" android:orientation="horizontal"
+                android:layout_width="wrap_content" android:layout_height="wrap_content">
+                <RadioButton android:id="@+id/alcohol_yes" android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" android:text="Yes"/>
+                <RadioButton android:id="@+id/alcohol_no" android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" android:text="No"/>
+            </RadioGroup>
+        </LinearLayout>
+
+        <!-- Cannabis -->
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:layout_marginBottom="16dp">
+            <TextView android:layout_width="100dp" android:layout_height="wrap_content"
+                android:text="Cannabis" android:gravity="center_vertical" android:paddingEnd="8dp"/>
+            <RadioGroup android:id="@+id/cannabis_group" android:orientation="horizontal"
+                android:layout_width="wrap_content" android:layout_height="wrap_content">
+                <RadioButton android:id="@+id/cannabis_yes" android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" android:text="Yes"/>
+                <RadioButton android:id="@+id/cannabis_no" android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" android:text="No"/>
+            </RadioGroup>
+        </LinearLayout>
+
+        <!-- === Section: Others === -->
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="Others" android:textStyle="bold" android:textSize="16sp"
+            android:layout_marginBottom="8dp"/>
+        <!-- Comments -->
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:layout_marginBottom="16dp">
+            <TextView android:layout_width="100dp" android:layout_height="wrap_content"
+                android:text="Comments:" android:gravity="top" android:paddingEnd="8dp"/>
+            <EditText android:id="@+id/comments" android:layout_width="0dp" android:layout_height="wrap_content"
+                android:layout_weight="1" android:minLines="2" android:inputType="textMultiLine"/>
+        </LinearLayout>
+
+        <!-- Save Button -->
+        <Button android:id="@+id/save_button" android:layout_width="wrap_content"
+            android:layout_height="wrap_content" android:text="Save"
+            android:layout_gravity="center_horizontal"
+            android:backgroundTint="@android:color/darker_gray"/>
+    </LinearLayout>
+</ScrollView>

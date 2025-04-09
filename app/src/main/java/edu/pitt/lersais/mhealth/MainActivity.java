@@ -97,9 +97,9 @@ public class MainActivity extends AppCompatActivity {
     private void moveToMedicalRecord() {
         // TODO: implement the function to move to your designed medical record activity view
         // An instance here
-        // Intent intent = new Intent(MainActivity.this, MedicalRecordActivity.class);
-        // startActivity(intent);
-        // overridePendingTransition(R.anim.push_left_in, R.anim.push_left_out);
+         Intent intent = new Intent(MainActivity.this, MedicalRecordEditActivity.class);
+         startActivity(intent);
+         overridePendingTransition(R.anim.push_left_in, R.anim.push_left_out);
 
         // BEGIN your code here
 
