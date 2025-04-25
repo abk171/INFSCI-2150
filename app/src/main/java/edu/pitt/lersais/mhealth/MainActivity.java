@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.design.widget.NavigationView;
+import android.support.design.widget.Snackbar;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
@@ -21,16 +22,20 @@ import android.widget.Toast;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
 import de.hdodenhof.circleimageview.CircleImageView;
-import edu.pitt.lersais.mhealth.adapter.ExpandableListAdapter;
-import edu.pitt.lersais.mhealth.adapter.GridListAdapter;
-import edu.pitt.lersais.mhealth.model.ExpandedMenu;
+import edu.pitt.lersais.mhealth.adaptor.ContentAdapter;
+import edu.pitt.lersais.mhealth.adaptor.ExpandableMenuListAdapter;
+import edu.pitt.lersais.mhealth.model.ExpandedMenuItem;
 import edu.pitt.lersais.mhealth.model.GridItem;
 import edu.pitt.lersais.mhealth.util.DownloadImageTask;
 
@@ -39,21 +44,20 @@ import edu.pitt.lersais.mhealth.util.DownloadImageTask;
  *
  * @author Haobing Huang and Runhua Xu.
  */
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
 
     private FirebaseAuth mAuth;
     private FirebaseUser currentUser;
 
-    private List<ExpandedMenu> mMenuList;
-    private HashMap<ExpandedMenu, List<ExpandedMenu>> mMenuListChild;
-    private ExpandableListAdapter mExpandableListAdaptor;
+    private List<ExpandedMenuItem> mMenuList;
+    private HashMap<ExpandedMenuItem, List<ExpandedMenuItem>> mMenuListChild;
+    private ExpandableMenuListAdapter mExpandableListAdaptor;
     private ExpandableListView expandableListView;
 
     private NavigationView navigationView;
     private DrawerLayout drawerLayout;
     private Toolbar toolbar;
     private DatabaseReference mDatabase;
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -70,12 +74,14 @@ public class MainActivity extends AppCompatActivity {
             initializeToolbar();
             initializeDrawerMenu();
 
-            // initialize the grid view in main window
+            // grid view in content_main
             GridView gridView = findViewById(R.id.content_grid_view);
             ArrayList<GridItem> mData = new ArrayList<GridItem>();
             mData.add(new GridItem(R.drawable.icon_medical_48, "Medical Record"));
+            mData.add(new GridItem(R.drawable.ic_menu_share, "Nearby Online"));
+            mData.add(new GridItem(R.drawable.ic_menu_send, "Nearby Offline"));
 
-            BaseAdapter adapter = new GridListAdapter<GridItem>(mData, R.layout.grid_view_item) {
+            BaseAdapter adapter = new ContentAdapter<GridItem>(mData, R.layout.grid_view_item) {
                 @Override
                 public void bindView(ViewHolder holder, GridItem obj) {
                     holder.setImageResource(R.id.img_icon, obj.getiId());
@@ -86,119 +92,68 @@ public class MainActivity extends AppCompatActivity {
             gridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
                 @Override
                 public void onItemClick(AdapterView<?> adapterView, View view, int position, long id) {
+                    Toast.makeText(MainActivity.this,
+                            "You click position " + position + " item",
+                            Toast.LENGTH_SHORT).show();
+                    Snackbar.make(view,
+                            "You click id " + id + " item",
+                            Snackbar.LENGTH_LONG).setAction("Action", null).show();
+
                     if (id == 0) {
                         moveToMedicalRecord();
+                    } else if (id == 1) {
+                        moveToNearbyOnline();
+                    } else if (id == 2) {
+//                        moveToNearbyOffline();
                     }
                 }
             });
         }
     }
 
-    private void moveToMedicalRecord() {
-        // TODO: implement the function to move to your designed medical record activity view
-        // An instance here
-         Intent intent = new Intent(MainActivity.this, MedicalRecordEditActivity.class);
-         startActivity(intent);
-         overridePendingTransition(R.anim.push_left_in, R.anim.push_left_out);
-
-        // BEGIN your code here
-
-    }
-
-    private void signOut() {
-        // TODO: Task 2.4 implement sign out function.
-        // Tips:
-        // 1) call the sign out method provided by Firebase Authentication
-        mAuth.signOut();
-        // 2) jump to the login view
-        Intent intent = new Intent(MainActivity.this, LoginActivity.class);
+    private void moveToNearbyOnline() {
+        Intent intent = new Intent(MainActivity.this,
+                NearbyRecordOnlineShareActivity.class);
         startActivity(intent);
         overridePendingTransition(R.anim.push_left_in, R.anim.push_left_out);
-
     }
 
-    private void initializeToolbar() {
-        toolbar = (Toolbar) findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
-    }
+//    private void moveToNearbyOffline() {
+//        Intent intent = new Intent(MainActivity.this,
+//                NearbyRecordOfflineShareActivity.class);
+//        startActivity(intent);
+//        overridePendingTransition(R.anim.push_left_in, R.anim.push_left_out);
+//    }
 
-    private void initializeDrawerMenu() {
-        // the drawer left menu
-        drawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
-        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(this, drawerLayout,
-                toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
-        drawerLayout.addDrawerListener(toggle);
-        toggle.syncState();
-
-        navigationView = (NavigationView) findViewById(R.id.nav_view);
-        View navHeaderView = navigationView.getHeaderView(0);
-        CircleImageView profilePhotoImageView = navHeaderView.findViewById(R.id.status_profile_photo);
-        if (currentUser.getPhotoUrl() != null) {
-            Uri photoUrl = currentUser.getPhotoUrl();
-            new DownloadImageTask(profilePhotoImageView).execute(photoUrl.toString());
-        }
-        TextView navHeaderUidTextView = navHeaderView.findViewById(R.id.status_uid);
-        if (currentUser.getDisplayName() != null && !currentUser.getDisplayName().isEmpty()) {
-            navHeaderUidTextView.setText(currentUser.getDisplayName());
-        }
-        TextView navHeaderEmailTextView = navHeaderView.findViewById(R.id.status_email);
-        navHeaderEmailTextView.setText(currentUser.getEmail());
-
-        // prepare the expandable menu list
-        prepareExpandableMenuData();
-
-        expandableListView = (ExpandableListView) findViewById(R.id.navigation_expandable_menu);
-        expandableListView.setGroupIndicator(null);
-        mExpandableListAdaptor = new ExpandableListAdapter(this, mMenuList, mMenuListChild, expandableListView);
-        expandableListView.setAdapter(mExpandableListAdaptor);
-        expandableListView.setOnGroupClickListener(new ExpandableListView.OnGroupClickListener() {
+    private void moveToMedicalRecord() {
+        final String FIREBASE_DATABASE = "MedicalHistory";
+        mDatabase = FirebaseDatabase.getInstance().getReference(FIREBASE_DATABASE);
+        mDatabase.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
-            public boolean onGroupClick(ExpandableListView expandableListView, View view, int groupPosition, long l) {
-                ExpandedMenu selectModel = (ExpandedMenu) expandableListView.getExpandableListAdapter().getGroup(groupPosition);
-                if (selectModel.getMenuName() == R.string.expandable_menu_account) {
-                    Intent intent = new Intent(MainActivity.this, ProfileActivity.class);
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                if (dataSnapshot.child(currentUser.getUid().toString()).exists()) {
+                    Intent intent = new Intent(MainActivity.this,
+                            MedicalRecordViewActivity.class);
                     startActivity(intent);
                     overridePendingTransition(R.anim.push_left_in, R.anim.push_left_out);
-                    return true;
-                } else if (selectModel.getMenuName() == R.string.expandable_menu_setting) {
-                    Intent intent = new Intent(MainActivity.this, SettingActivity.class);
+                } else {
+                    Intent intent = new Intent(MainActivity.this,
+                            MedicalRecordEditActivity.class);
+                    intent.putExtra("flag","MainActivity");
                     startActivity(intent);
                     overridePendingTransition(R.anim.push_left_in, R.anim.push_left_out);
-                    return true;
-                } else if (selectModel.getMenuName() == R.string.expandable_menu_logout) {
-                    MainActivity.this.signOut();
-                    return true;
                 }
-
-                return false;
             }
-        });
-        expandableListView.setOnChildClickListener(new ExpandableListView.OnChildClickListener() {
+
             @Override
-            public boolean onChildClick(ExpandableListView expandableListView, View view, int groupPosition, int childPosition, long l) {
-                ExpandedMenu selectModel = (ExpandedMenu) expandableListView.getExpandableListAdapter().getChild(groupPosition, childPosition);
-                if (selectModel.getMenuName() == R.string.expandable_menu_medical_item1) {
-                    moveToMedicalRecord();
-                    return true;
-                }
-                return false;
+            public void onCancelled(DatabaseError databaseError) {
+
             }
         });
     }
 
-    private void prepareExpandableMenuData() {
-        mMenuList = new ArrayList<>();
-        mMenuListChild = new HashMap<>();
-        mMenuList.add(new ExpandedMenu(R.string.expandable_menu_account, R.drawable.menu_account_24));
-        mMenuList.add(new ExpandedMenu(R.string.expandable_menu_medical, R.drawable.menu_medical_24));
-        mMenuList.add(new ExpandedMenu(R.string.expandable_menu_setting, R.drawable.ic_menu_manage));
-        mMenuList.add(new ExpandedMenu(R.string.expandable_menu_logout, R.drawable.menu_logout_24));
 
-        List<ExpandedMenu> medicalMenuList = new ArrayList<>();
-        medicalMenuList.add(new ExpandedMenu(R.string.expandable_menu_medical_item1, R.drawable.menu_medical_24));
-        medicalMenuList.add(new ExpandedMenu(R.string.expandable_menu_medical_item2, R.drawable.menu_medical_24));
-        mMenuListChild.put(mMenuList.get(1), medicalMenuList);
-    }
+
 
     @Override
     public void onBackPressed() {
@@ -231,4 +186,146 @@ public class MainActivity extends AppCompatActivity {
 
         return super.onOptionsItemSelected(item);
     }
+
+    /**
+     * This function is deprecated.
+     * @param item
+     * @return
+     */
+    @Override
+    public boolean onNavigationItemSelected(MenuItem item) {
+        // Handle navigation view item clicks here.
+        int id = item.getItemId();
+
+        if (id == R.id.nav_menu_account) {
+
+        } else if (id == R.id.nav_menu_medical) {
+
+        } else if (id == R.id.nav_menu_setting) {
+
+        } else if (id == R.id.nav_menu_share) {
+
+        } else if (id == R.id.nav_menu_send) {
+
+        } else if (id == R.id.nav_menu_logout) {
+            signOut();
+        }
+
+        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
+        drawer.closeDrawer(GravityCompat.START);
+        return true;
+    }
+
+    private void signOut() {
+        mAuth.signOut();
+        Intent intent = new Intent(this, LoginActivity.class);
+        finish();
+        startActivity(intent);
+    }
+
+    private void prepareExpandableMenuData() {
+        mMenuList = new ArrayList<>();
+        mMenuListChild = new HashMap<>();
+        mMenuList.add(new ExpandedMenuItem(R.string.expandable_menu_account, R.drawable.menu_account_24));
+        mMenuList.add(new ExpandedMenuItem(R.string.expandable_menu_medical, R.drawable.menu_medical_24));
+        mMenuList.add(new ExpandedMenuItem(R.string.expandable_menu_share, R.drawable.ic_menu_share));
+        mMenuList.add(new ExpandedMenuItem(R.string.expandable_menu_send, R.drawable.ic_menu_send));
+        mMenuList.add(new ExpandedMenuItem(R.string.expandable_menu_setting, R.drawable.ic_menu_manage));
+        mMenuList.add(new ExpandedMenuItem(R.string.expandable_menu_logout, R.drawable.menu_logout_24));
+
+        List<ExpandedMenuItem> medicalMenuList = new ArrayList<>();
+        medicalMenuList.add(new ExpandedMenuItem(R.string.expandable_menu_medical_item1, R.drawable.menu_medical_24));
+        mMenuListChild.put(mMenuList.get(1), medicalMenuList);
+    }
+
+    private void initializeToolbar() {
+        toolbar = (Toolbar) findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+    }
+
+    private void initializeDrawerMenu() {
+        // the drawer left menu
+        drawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
+        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(this, drawerLayout,
+                toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
+        drawerLayout.addDrawerListener(toggle);
+        toggle.syncState();
+
+        navigationView = (NavigationView) findViewById(R.id.nav_view);
+        navigationView.setNavigationItemSelectedListener(this);
+        View navHeaderView = navigationView.getHeaderView(0);
+        CircleImageView profilePhotoImageView = navHeaderView.findViewById(R.id.status_profile_photo);
+        if (currentUser.getPhotoUrl() != null) {
+            Uri photoUrl = currentUser.getPhotoUrl();
+            new DownloadImageTask(profilePhotoImageView).execute(photoUrl.toString());
+        }
+        TextView navHeaderUidTextView = navHeaderView.findViewById(R.id.status_uid);
+        if (currentUser.getDisplayName() != null && !currentUser.getDisplayName().isEmpty()) {
+            navHeaderUidTextView.setText(currentUser.getDisplayName());
+        }
+        TextView navHeaderEmailTextView = navHeaderView.findViewById(R.id.status_email);
+        navHeaderEmailTextView.setText(currentUser.getEmail());
+
+        // prepare the expandable menu list
+        prepareExpandableMenuData();
+        expandableListView = (ExpandableListView) findViewById(R.id.navigation_expandable_menu);
+        expandableListView.setGroupIndicator(null);
+        mExpandableListAdaptor = new ExpandableMenuListAdapter(this, mMenuList, mMenuListChild, expandableListView);
+        expandableListView.setAdapter(mExpandableListAdaptor);
+        expandableListView.setOnGroupClickListener(new ExpandableListView.OnGroupClickListener() {
+            @Override
+            public boolean onGroupClick(ExpandableListView expandableListView,
+                                        View view,
+                                        int groupPosition,
+                                        long l) {
+                ExpandedMenuItem selectModel = (ExpandedMenuItem) expandableListView.
+                        getExpandableListAdapter().
+                        getGroup(groupPosition);
+                if (selectModel.getMenuName() == R.string.expandable_menu_account) {
+                    Intent intent = new Intent(MainActivity.this, ProfileActivity.class);
+                    startActivity(intent);
+                    overridePendingTransition(R.anim.push_left_in, R.anim.push_left_out);
+                    return true;
+                } else if (selectModel.getMenuName() == R.string.expandable_menu_setting) {
+                    Intent intent = new Intent(MainActivity.this, SettingActivity.class);
+                    startActivity(intent);
+                    overridePendingTransition(R.anim.push_left_in, R.anim.push_left_out);
+                    return true;
+                } else if (selectModel.getMenuName() == R.string.expandable_menu_logout) {
+                    MainActivity.this.signOut();
+                    return true;
+                } else if (selectModel.getMenuName() == R.string.expandable_menu_send) {
+//                    Intent intent = new Intent(MainActivity.this, NearbyRecordOfflineShareActivity.class);
+//                    startActivity(intent);
+//                    overridePendingTransition(R.anim.push_left_in, R.anim.push_left_out);
+                    return true;
+                } else if (selectModel.getMenuName() == R.string.expandable_menu_share) {
+                    Intent intent = new Intent(MainActivity.this, NearbyRecordOnlineShareActivity.class);
+                    startActivity(intent);
+                    overridePendingTransition(R.anim.push_left_in, R.anim.push_left_out);
+                    return true;
+                }
+
+                return false;
+            }
+        });
+        expandableListView.setOnChildClickListener(new ExpandableListView.OnChildClickListener() {
+            @Override
+            public boolean onChildClick(ExpandableListView expandableListView,
+                                        View view,
+                                        int groupPosition,
+                                        int childPosition,
+                                        long l) {
+                ExpandedMenuItem selectModel = (ExpandedMenuItem) expandableListView.
+                        getExpandableListAdapter().
+                        getChild(groupPosition, childPosition);
+                if (selectModel.getMenuName() == R.string.expandable_menu_medical_item1) {
+                    moveToMedicalRecord();
+                    return true;
+                }
+                return false;
+            }
+        });
+    }
+
 }

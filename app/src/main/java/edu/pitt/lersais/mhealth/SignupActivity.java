@@ -5,15 +5,23 @@ import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.Log;
+import android.util.Patterns;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.Toast;
 
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
+import com.google.api.services.cloudkms.v1.CloudKMS;
+import com.google.api.services.cloudkms.v1.model.CryptoKey;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+
+import java.io.IOException;
+
+import edu.pitt.lersais.mhealth.util.CloudKMSUtil;
+import edu.pitt.lersais.mhealth.util.Constant;
 
 
 /**
@@ -25,9 +33,7 @@ import com.google.firebase.auth.FirebaseUser;
 public class SignupActivity extends BaseActivity implements View.OnClickListener {
     private static final String TAG = "SignupActivity";
 
-    // BEGIN
     private FirebaseAuth mAuth;
-    // END
 
     private EditText mEmailEditText;
     private EditText mPasswordEditText;
@@ -38,9 +44,7 @@ public class SignupActivity extends BaseActivity implements View.OnClickListener
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_signup);
 
-        // BEGIN
         mAuth = FirebaseAuth.getInstance();
-        // END
 
         mEmailEditText = findViewById(R.id.field_email);
         mPasswordEditText = findViewById(R.id.field_password);
@@ -66,49 +70,85 @@ public class SignupActivity extends BaseActivity implements View.OnClickListener
     }
 
     private void registration() {
-        // TODO: Task 2.2 implement the registration procedure here.
-        // Tips: recommended steps
-        // 1) get the email and password from user's input
-        String email = mEmailEditText.getText().toString().trim();
-        String pass1 = mPasswordEditText.getText().toString().trim();
-        String pass2 = mConfirmPasswordEditText.getText().toString().trim();
-        // 2) validate the format of user's input
-        if (email.isEmpty() || pass1.isEmpty() || pass2.isEmpty()) {
-            Toast.makeText(this,
-                    "Please fill all fields correctly",
-                    Toast.LENGTH_SHORT).show();
+        String email = mEmailEditText.getText().toString();
+        final String password = mPasswordEditText.getText().toString();
+        Log.d(TAG, "create account: " + email);
+
+        if (!validate()) {
             return;
         }
 
-
-
-        if (!pass1.equals(pass2)) {
-            Toast.makeText(this,
-                    "Passwords must match",
-                    Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        // 3) present a progress dialog (check in the BaseActivity)
         showProgressDialog();
-        // 4) call related register method provided by Firebase Authentication
-        mAuth.createUserWithEmailAndPassword(email, pass1)
-                .addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
+
+        mAuth.createUserWithEmailAndPassword(email, password).addOnCompleteListener(this,
+                new OnCompleteListener<AuthResult>() {
                     @Override
                     public void onComplete(@NonNull Task<AuthResult> task) {
-                        hideProgressDialog();
                         if (task.isSuccessful()) {
-                            Log.d(TAG, "createUserWithEmail:success");
+                            Log.d(TAG, "create user with email success");
+
+                            // Create a key by adopting the service from google cloud KMS
                             FirebaseUser user = mAuth.getCurrentUser();
+                            String keyid = user.getUid();
+                            try{
+                                initializeCryptoKey(keyid);
+                            } catch (IOException e){
+                                Log.d(TAG, "create the key failed");
+                            }
+
+                            Intent intent = new Intent(getApplicationContext(), LoginActivity.class);
+                            startActivity(intent);
+                            overridePendingTransition(R.anim.push_left_in, R.anim.push_left_out);
                         } else {
-                            Toast.makeText(SignupActivity.this, task.getException().toString(), Toast.LENGTH_SHORT).show();
-                            Log.w(TAG, "createUserWithEmail:failure", task.getException());
-
-
+                            Log.w(TAG, "create user with email failure", task.getException());
+                            Toast.makeText(getBaseContext(), "Authentication Failed.",
+                                    Toast.LENGTH_LONG).show();
                         }
+                        hideProgressDialog();
                     }
                 });
-        // 5) close the progress dialog
+    }
 
+    private boolean validate() {
+        boolean valid = true;
+
+        String email = mEmailEditText.getText().toString();
+        String password = mPasswordEditText.getText().toString();
+        String passwordConfirm = mConfirmPasswordEditText.getText().toString();
+
+        if (email.isEmpty() || !Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+            mEmailEditText.setError("enter a valid email address");
+            valid = false;
+        } else {
+            mEmailEditText.setError(null);
+        }
+
+        if (password.isEmpty() || password.length() < 4 || password.length() > 10) {
+            mPasswordEditText.setError("between 4 and 10 alphanumeric characters");
+            valid = false;
+        } else {
+            mPasswordEditText.setError(null);
+        }
+
+        if (passwordConfirm.isEmpty()) {
+            mConfirmPasswordEditText.setError("need to confirm your password");
+            valid = false;
+        } else {
+            if (passwordConfirm.equals(password)) {
+                mConfirmPasswordEditText.setError(null);
+            } else {
+                mConfirmPasswordEditText.setError("different confirm password");
+            }
+        }
+        return valid;
+    }
+
+    public void initializeCryptoKey(String cryptoKeyId) throws IOException {
+        // TODO: TASK 1.1
+        // TODO: create a thread to initialize a key using Google Cloud KMS
+        // BEGIN
+
+
+        // END
     }
 }

@@ -31,3 +31,5 @@ build/
 *.ap_
 *.dex
 
+# manifest
+app/src/main/AndroidManifest.xml

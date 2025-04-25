@@ -1,11 +1,6 @@
 package edu.pitt.lersais.mhealth.model;
 
 
-/**
- * The grid item model in the main window.
- *
- * @author Haobing Huang and Runhua Xu.
- */
 public class GridItem {
     private int iId;
     private String iName;
@@ -23,17 +18,14 @@ public class GridItem {
     }
 
     public String getiName() {
-
         return iName;
     }
 
     public void setiId(int iId) {
-
         this.iId = iId;
     }
 
     public void setiName(String iName) {
-
         this.iName = iName;
     }
 }

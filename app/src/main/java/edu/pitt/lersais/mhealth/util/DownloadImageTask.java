@@ -9,16 +9,13 @@ import android.widget.ImageView;
 import java.io.InputStream;
 
 /**
- * Execute a image download task.
- *
- * @author Haobing Huang and Runhua Xu.
+ * Created by runhua and haobing on 6/21/18.
  */
 
 public class DownloadImageTask extends AsyncTask<String, Void, Bitmap> {
     ImageView bmImage;
 
     public DownloadImageTask(ImageView bmImage) {
-
         this.bmImage = bmImage;
     }
 

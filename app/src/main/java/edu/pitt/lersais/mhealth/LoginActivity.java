@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.util.Log;
+import android.util.Patterns;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.Toast;
@@ -12,7 +13,6 @@ import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
 
 
 /**
@@ -28,18 +28,14 @@ public class LoginActivity extends BaseActivity implements View.OnClickListener 
     private EditText mEmailEditText;
     private EditText mPasswordEditText;
 
-    // BEGIN
     private FirebaseAuth mAuth;
-    // END
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
 
-        // BEGIN
         mAuth = FirebaseAuth.getInstance();
-        // END
 
         mEmailEditText = findViewById(R.id.field_email);
         mPasswordEditText = findViewById(R.id.field_password);
@@ -63,42 +59,54 @@ public class LoginActivity extends BaseActivity implements View.OnClickListener 
     }
 
     private void login() {
-        // TODO: Task 2.3 implement the login code here with validation for user inputs.
-        // Tips: recommended steps
-        // 1) get the email and password from user's input
-        String email = mEmailEditText.getText().toString().trim();
-        String pass = mPasswordEditText.getText().toString().trim();
-        // 2) validate the format of user's input
-        if (email.isEmpty() || pass.isEmpty()) {
-            Toast.makeText(this, "Please enter a valid e-mail or password", Toast.LENGTH_SHORT).show();
+        String email = mEmailEditText.getText().toString();
+        String password = mPasswordEditText.getText().toString();
+        Log.d(TAG, "sign in: " + email);
+
+        if (!validate()) {
             return;
         }
-        // 3) present a progress dialog (check in the BaseActivity)
+
         showProgressDialog();
-        // 4) call related authentication method provided by Firebase Authentication
-        mAuth.signInWithEmailAndPassword(email, pass)
-                .addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
+
+        mAuth.signInWithEmailAndPassword(email, password).addOnCompleteListener(this,
+                new OnCompleteListener<AuthResult>() {
                     @Override
                     public void onComplete(@NonNull Task<AuthResult> task) {
-                        hideProgressDialog();
                         if (task.isSuccessful()) {
-                            // Sign in success, update UI with the signed-in user's information
-                            Log.d(TAG, "signInWithEmail:success");
-                            FirebaseUser user = mAuth.getCurrentUser();
-                             Intent intent = new Intent(LoginActivity.this, MainActivity.class);
-                             startActivity(intent);
-                             overridePendingTransition(R.anim.push_left_in, R.anim.push_left_out);
-                        } else {
-                            // If sign in fails, display a message to the user.
-                            Log.w(TAG, "signInWithEmail:failure", task.getException());
-                            Toast.makeText(LoginActivity.this, "Authentication failed.",
-                                    Toast.LENGTH_SHORT).show();
+                            Log.d(TAG, "sign in with email success");
+                            Intent intent = new Intent(getApplicationContext(), MainActivity.class);
+                            startActivity(intent);
+                            overridePendingTransition(R.anim.push_left_in, R.anim.push_left_out);
                         }
+                        else {
+                            Log.w(TAG, "sign in with email failure");
+                            Toast.makeText(getBaseContext(), "Authentication Failed", Toast.LENGTH_LONG).show();
+                        }
+
+                        hideProgressDialog();
                     }
                 });
-
-        // 5) close the progress dialog
-
     }
 
+    private boolean validate() {
+        boolean valid = true;
+        String email = mEmailEditText.getText().toString();
+        String password = mPasswordEditText.getText().toString();
+
+        if (email.isEmpty() || !Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+            mEmailEditText.setError("Enter a valid email address");
+            valid = false;
+        } else {
+            mEmailEditText.setError(null);
+        }
+
+        if (password.isEmpty()) {
+            mPasswordEditText.setError("Required a password");
+            valid = false;
+        } else {
+            mPasswordEditText.setError(null);
+        }
+        return valid;
+    }
 }
