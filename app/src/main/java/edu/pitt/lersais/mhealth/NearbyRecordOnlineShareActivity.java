@@ -16,6 +16,9 @@ import android.widget.Toast;
 import com.google.android.gms.nearby.Nearby;
 import com.google.android.gms.nearby.messages.Message;
 import com.google.android.gms.nearby.messages.MessageListener;
+import com.google.android.gms.nearby.messages.SubscribeOptions;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DataSnapshot;
@@ -23,13 +26,16 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
+import com.google.gson.Gson;
 
+import java.util.HashMap;
 import java.util.Random;
 
 import edu.pitt.lersais.mhealth.model.MedicalHistoryRecord;
+import edu.pitt.lersais.mhealth.util.Constant;
 import edu.pitt.lersais.mhealth.util.DecryptMedicalRecordThread;
 import edu.pitt.lersais.mhealth.util.DecryptMessageHandler;
-
+import tgio.rncryptor.RNCryptorNative;
 /**
  * The NearbyRecordOnlineShareActivity that is used to share record to others nearby.
  *
@@ -115,18 +121,15 @@ public class NearbyRecordOnlineShareActivity extends BaseActivity implements Dec
                     // TODO: Task 2.1.2 Send the record using nearby message
                     // Begin
                     mPasscode = mTextViewPasscode.getText().toString();
-                    if (mPasscode == null || mPasscode.isEmpty()) {
+                    if (mPasscode.isEmpty()) {
                         snackbarNotify(view, "Please generate the passcode first");
                         return;
                     }
 
-                    if (!mSwitch.isActivated()) {
-                        snackbarNotify(view, "Please activate the share switch first");
-                        return;
-                    }
-
                     int selectedMedicalRecord = mRadioGroupRecordChoose.getCheckedRadioButtonId();
-                    if (selectedMedicalRecord == -1 || selectedMedicalRecord != R.id.share_radio_button_medical_record) {
+                    if (selectedMedicalRecord != R.id.share_radio_button_medical_record) {
+                        mMessage = new Message(MESSAGE_DEFAULT.getBytes());
+                        Nearby.getMessagesClient(NearbyRecordOnlineShareActivity.this).publish(mMessage);
                         return;
                     }
 
@@ -175,7 +178,34 @@ public class NearbyRecordOnlineShareActivity extends BaseActivity implements Dec
 
                     // TODO: Task 2.1.3 Receive the record
                     // BEGIN
+                    mPasscode = mEditTextPasscode.getText().toString();
+                    if (mPasscode.isEmpty()) {
+                        return;
+                    }
+                    mMessageListener = new MessageListener() {
+                        @Override
+                        public void onFound(Message message) {
+                            Log.d(TAG, "Received medical record");
+                            // display the record
+                            displayRecord(secureMessageToMedicalRecord(message, mPasscode));
+                        }
 
+                        @Override
+                        public void onLost(Message message) {
+                            Log.d(TAG, "Lost sight of message: " + new String(message.getContent()));
+                        }
+                    };
+
+                    Nearby.getMessagesClient(NearbyRecordOnlineShareActivity.this)
+                            .subscribe(mMessageListener)
+                            .addOnCompleteListener(new OnCompleteListener<Void>() {
+                                @Override
+                                public void onComplete(@NonNull Task<Void> task) {
+                                    if (task.isSuccessful()) {
+                                        Log.d(TAG, "Received medical record");
+                                    }
+                                }
+                            });
                     // END
                 }
             });
@@ -187,19 +217,73 @@ public class NearbyRecordOnlineShareActivity extends BaseActivity implements Dec
         super.onStart();
     }
 
+    private void displayRecord(MedicalHistoryRecord medicalHistoryRecord) {
+        TextView nameView = findViewById(R.id.name);
+        TextView dobView = findViewById(R.id.dob);
+        TextView sexView = findViewById(R.id.sex);
+        TextView marital_statusView = findViewById(R.id.marital_status);
+        TextView occupationView = findViewById(R.id.occupation);
+        TextView contactView = findViewById(R.id.contact);
+        TextView allergiesView = findViewById(R.id.allergies);
+        TextView diseasesView = findViewById(R.id.pastdiseases);
+        TextView fatherView = findViewById(R.id.father);
+        TextView motherView = findViewById(R.id.mother);
+        TextView siblingView = findViewById(R.id.sibling);
+        TextView alcoholView = findViewById(R.id.Alcohol);
+        TextView cannabisView = findViewById(R.id.Cannabis);
+        TextView commentsView = findViewById(R.id.comments);
+
+        nameView.setText(medicalHistoryRecord.getName());
+        dobView.setText(medicalHistoryRecord.getDob());
+        sexView.setText(medicalHistoryRecord.getSex());
+        marital_statusView.setText(medicalHistoryRecord.getMarital_status());
+        occupationView.setText(medicalHistoryRecord.getOccupation());
+        contactView.setText(medicalHistoryRecord.getContact());
+        allergiesView.setText(medicalHistoryRecord.getAllergies());
+
+        StringBuilder diseaseBuilder = new StringBuilder();
+        String[] diseases = medicalHistoryRecord.getDiseases().split(",");
+
+        for (String disease : diseases) {
+            if (diseaseBuilder.length() > 0) {
+                diseaseBuilder.append(", ");
+            }
+            diseaseBuilder.append(disease);
+        }
+
+        diseasesView.setText(diseaseBuilder.toString());
+
+        HashMap<String, String> family_diseases = medicalHistoryRecord.getFamily_diseases();
+        fatherView.setText(family_diseases.get(Constant.MEDICAL_RECORD_FAMILY_FATHER_KEY));
+        motherView.setText(family_diseases.get(Constant.MEDICAL_RECORD_FAMILY_MOTHER_KEY));
+        siblingView.setText(family_diseases.get(Constant.MEDICAL_RECORD_FAMILY_SIBLING_KEY));
+
+        HashMap<String, String> habits = medicalHistoryRecord.getHabits();
+
+        alcoholView.setText(habits.get(Constant.MEDICAL_RECORD_HABIT_ALCOHOL_KEY));
+        cannabisView.setText(habits.get(Constant.MEDICAL_RECORD_HABIT_CANNABIS_KEY));
+
+        commentsView.setText(medicalHistoryRecord.getComments());
+
+
+    }
     private Message secureMedicalRecordToMessage(MedicalHistoryRecord medicalHistoryRecord, String passcode) {
         // TODO: Task 2.1.2
         // BEGIN
-
-        return null;
-        // BEGIN
+        RNCryptorNative rnCryptorNative = new RNCryptorNative();
+        Gson gson = new Gson();
+        String recordJson = gson.toJson(medicalHistoryRecord);
+        return new Message(rnCryptorNative.encrypt(recordJson, passcode));
+        // END
     }
 
     private MedicalHistoryRecord secureMessageToMedicalRecord(Message message, String passcode) {
         // TODO: Task 2.1.3
         // BEGIN
-
-        return null;
+        RNCryptorNative rnCryptorNative = new RNCryptorNative();
+        Gson gson  = new Gson();
+        String decryptedMessageJson = rnCryptorNative.decrypt(message.toString(), passcode);
+        return gson.fromJson(decryptedMessageJson, MedicalHistoryRecord.class);
         // END
     }
 
@@ -218,6 +302,23 @@ public class NearbyRecordOnlineShareActivity extends BaseActivity implements Dec
 
     @Override
     public void processDecryptRecord(Object record) {
+        MedicalHistoryRecord medicalHistoryRecord = (MedicalHistoryRecord) record;
+        // send the message here
+        mMessage = secureMedicalRecordToMessage(medicalHistoryRecord, mPasscode);
+        Nearby.getMessagesClient(NearbyRecordOnlineShareActivity.this).
+                publish(mMessage).
+                addOnCompleteListener(new OnCompleteListener<Void>() {
+                    @Override
+                    public void onComplete(@NonNull Task<Void> task) {
+                        if (task.isSuccessful()) {
+                            Log.d(TAG, "Record sent successfully");
+                        }
+                        else {
+                            Log.d(TAG, "Unable to send record");
+                        }
+                    }
+                });
 
+        hideProgressDialog();
     }
 }
