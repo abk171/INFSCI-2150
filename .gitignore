@@ -33,3 +33,5 @@ build/
 
 # manifest
 app/src/main/AndroidManifest.xml
+
+app/src/main/assets/*

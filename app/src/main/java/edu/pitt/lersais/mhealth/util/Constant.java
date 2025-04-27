@@ -14,7 +14,7 @@ public class Constant {
     public static final String MEDICAL_RECORD_HABIT_ALCOHOL_KEY = "Alcohol";
     public static final String MEDICAL_RECORD_HABIT_CANNABIS_KEY = "Cannabis";
 
-    public static final String KMS_PROJECT_ID = "lersais-mhealth-lab-project";
+    public static final String KMS_PROJECT_ID = "loyal-bounty-434019-d4";
     public static final String KMS_LOCATION = "global";
-    public static final String KMS_KEY_RING_ID = "lersais";
+    public static final String KMS_KEY_RING_ID = "mHealth-project";
 }

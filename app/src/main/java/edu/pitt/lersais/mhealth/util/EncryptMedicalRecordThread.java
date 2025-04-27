@@ -55,7 +55,37 @@ public class EncryptMedicalRecordThread extends Thread {
             // TODO: Task 1.4
             // TODO: encrypt the content of the record from originalRecord and store in encryptedRecord
             // BEGIN
+            encryptedRecord.setName(kmsUtil.encrypt(originalRecord.getName(), userUid, kms));
+            encryptedRecord.setDob(kmsUtil.encrypt(originalRecord.getDob(), userUid, kms));
+            encryptedRecord.setSex(kmsUtil.encrypt(originalRecord.getSex(), userUid, kms));
+            encryptedRecord.setMarital_status(kmsUtil.encrypt(originalRecord.getMarital_status(), userUid, kms));
+            encryptedRecord.setOccupation(kmsUtil.encrypt(originalRecord.getOccupation(), userUid, kms));
+            encryptedRecord.setContact(kmsUtil.encrypt(originalRecord.getContact(), userUid, kms));
+            encryptedRecord.setAllergies(kmsUtil.encrypt(originalRecord.getAllergies(), userUid, kms));
+            encryptedRecord.setDiseases(kmsUtil.encrypt(originalRecord.getDiseases(), userUid, kms));
+            encryptedRecord.setComments(kmsUtil.encrypt(originalRecord.getComments(), userUid, kms));
 
+            HashMap<String, String> encrypted_family_diseases = new HashMap<>();
+            HashMap<String, String> family_diseases = originalRecord.getFamily_diseases();
+
+            for (String key: family_diseases.keySet()) {
+//                String encrypted_key = kmsUtil.encrypt(key, userUid, kms);
+                String encrypted_value = kmsUtil.encrypt(family_diseases.get(key), userUid, kms);
+                encrypted_family_diseases.put(key, encrypted_value);
+            }
+
+            encryptedRecord.setFamily_diseases(encrypted_family_diseases);
+
+            HashMap <String, String> encrypted_habits = new HashMap<>();
+            HashMap <String, String> habits = originalRecord.getHabits();
+
+            for (String key: habits.keySet()) {
+//                String encrypted_key = kmsUtil.encrypt(key, userUid, kms);
+                String encrypted_value = kmsUtil.encrypt(habits.get(key), userUid, kms);
+                encrypted_habits.put(key, encrypted_value);
+            }
+
+            encryptedRecord.setHabits(encrypted_habits);
             // END
 
 
