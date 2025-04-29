@@ -11,12 +11,10 @@ import android.widget.EditText;
 import android.widget.RadioGroup;
 import android.widget.Switch;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.google.android.gms.nearby.Nearby;
 import com.google.android.gms.nearby.messages.Message;
 import com.google.android.gms.nearby.messages.MessageListener;
-import com.google.android.gms.nearby.messages.SubscribeOptions;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
@@ -106,8 +104,20 @@ public class NearbyRecordOnlineShareActivity extends BaseActivity implements Dec
                 public void onClick(View v) {
                     // TODO: task 2.1.1 Generate a random alphanumeric passcode (6-8 bit) and display in the mTextViewPasscode
                     // BEGIN
-                    int random = new Random().nextInt(1000000);
-                    mTextViewPasscode.setText("" + random);
+//                    int random = new Random().nextInt(1000000);
+//                    mTextViewPasscode.setText("" + random);
+                    Random random = new Random();
+                    StringBuilder passwordBuilder = new StringBuilder();
+                    for (int i = 0; i < 6 + random.nextInt(3); i++) {
+                        int choice = random.nextInt(2);
+                        if (choice == 1) {
+                            passwordBuilder.append((char) ('a' + random.nextInt(26)));
+                        }
+                        else {
+                            passwordBuilder.append(random.nextInt(10));
+                        }
+                    }
+                    mTextViewPasscode.setText(passwordBuilder.toString());
                     // END
                 }
             });
@@ -120,53 +130,66 @@ public class NearbyRecordOnlineShareActivity extends BaseActivity implements Dec
 
                     // TODO: Task 2.1.2 Send the record using nearby message
                     // Begin
+
                     mPasscode = mTextViewPasscode.getText().toString();
-                    if (mPasscode.isEmpty()) {
+                    if (!mPasscode.isEmpty()) {
+                        int selectedMedicalRecord = mRadioGroupRecordChoose.getCheckedRadioButtonId();
+                        if (selectedMedicalRecord == R.id.share_radio_button_medical_record) {
+                            mDatabase.addListenerForSingleValueEvent(new ValueEventListener() {
+                                @Override
+                                public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                                    if(dataSnapshot.exists()) {
+                                        MedicalHistoryRecord encryptedRecord = dataSnapshot.getValue(MedicalHistoryRecord.class);
+                                        if (encryptedRecord != null) {
+                                            DecryptMessageHandler messageHandler = new DecryptMessageHandler(Looper.getMainLooper());
+                                            messageHandler.setCallback(NearbyRecordOnlineShareActivity.this);
+
+                                            Thread decryptionThread = new DecryptMedicalRecordThread(
+                                                    encryptedRecord,
+                                                    currentUser.getUid(),
+                                                    getApplicationContext(),
+                                                    messageHandler
+                                            );
+
+                                            decryptionThread.start();
+                                            showProgressDialog();
+                                        } else {
+                                            Log.e(TAG, "Medical record doesn't exist.");
+                                            toastNotify("Please create a medical record!");
+                                        }
+                                    } else {
+                                        Log.e(TAG, "Snapshot doesn't exist");
+                                        toastNotify("Database could not be contacted!");
+                                    }
+
+                                }
+
+                                @Override
+                                public void onCancelled(@NonNull DatabaseError databaseError) {
+                                    Log.e(TAG, "Database error " + databaseError.getMessage());
+                                    toastNotify("Failed to retrieve medical record");
+                                }
+                            });
+                        } else {
+                            mMessage = new Message((MESSAGE_DEFAULT.getBytes()));
+                            Nearby.getMessagesClient(NearbyRecordOnlineShareActivity.this)
+                                    .publish(mMessage)
+                                    .addOnCompleteListener(new OnCompleteListener<Void>() {
+                                        @Override
+                                        public void onComplete(@NonNull Task<Void> task) {
+                                            if (task.isSuccessful()) {
+                                                Log.d(TAG, "Publish successfully");
+                                            }
+                                            else {
+                                                Log.d(TAG, "Publish failed");
+                                            }
+                                        }
+                                    });
+                        }
+                    } else {
                         snackbarNotify(view, "Please generate the passcode first");
-                        return;
                     }
 
-                    int selectedMedicalRecord = mRadioGroupRecordChoose.getCheckedRadioButtonId();
-                    if (selectedMedicalRecord != R.id.share_radio_button_medical_record) {
-                        mMessage = new Message(MESSAGE_DEFAULT.getBytes());
-                        Nearby.getMessagesClient(NearbyRecordOnlineShareActivity.this).publish(mMessage);
-                        return;
-                    }
-
-                    mDatabase.addListenerForSingleValueEvent(new ValueEventListener() {
-                        @Override
-                        public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                            if (!dataSnapshot.exists()) {
-                                Log.e(TAG, "Snapshot doesn't exist.");
-                                return;
-                            }
-
-                            MedicalHistoryRecord encryptedRecord = dataSnapshot.getValue(MedicalHistoryRecord.class);
-                            if (!dataSnapshot.exists()) {
-                                Log.e(TAG, "Medical record doesn't exist.");
-                                Toast.makeText(NearbyRecordOnlineShareActivity.this, "Please create a medical record", Toast.LENGTH_SHORT).show();
-                                return;
-                            }
-                            DecryptMessageHandler messageHandler = new DecryptMessageHandler(Looper.getMainLooper());
-                            messageHandler.setCallback(NearbyRecordOnlineShareActivity.this);
-
-                            Thread decryptionThread = new DecryptMedicalRecordThread(
-                                    encryptedRecord,
-                                    currentUser.getUid(),
-                                    getApplicationContext(),
-                                    messageHandler
-                            );
-
-                            decryptionThread.start();
-                            showProgressDialog();
-                        }
-
-                        @Override
-                        public void onCancelled(@NonNull DatabaseError databaseError) {
-                            Log.e(TAG, "Database error " + databaseError.getMessage());
-                            Toast.makeText(NearbyRecordOnlineShareActivity.this, "Failed to retrieve medical record", Toast.LENGTH_SHORT).show();
-                        }
-                    });
 
                     // END
                 }
@@ -178,34 +201,43 @@ public class NearbyRecordOnlineShareActivity extends BaseActivity implements Dec
 
                     // TODO: Task 2.1.3 Receive the record
                     // BEGIN
+
                     mPasscode = mEditTextPasscode.getText().toString();
-                    if (mPasscode.isEmpty()) {
-                        return;
-                    }
-                    mMessageListener = new MessageListener() {
-                        @Override
-                        public void onFound(Message message) {
-                            Log.d(TAG, "Received medical record");
-                            // display the record
-                            displayRecord(secureMessageToMedicalRecord(message, mPasscode));
-                        }
+                    if (!mPasscode.isEmpty()) {
+                        mMessageListener = new MessageListener() {
+                            @Override
+                            public void onFound(Message message) {
+                                Log.d(TAG, "Received medical record");
+                                // display the record
+                                displayRecord(secureMessageToMedicalRecord(message, mPasscode));
+                            }
 
-                        @Override
-                        public void onLost(Message message) {
-                            Log.d(TAG, "Lost sight of message: " + new String(message.getContent()));
-                        }
-                    };
+                            @Override
+                            public void onLost(Message message) {
+                                Log.d(TAG, "Lost sight of message: " + new String(message.getContent()));
+                            }
+                        };
 
-                    Nearby.getMessagesClient(NearbyRecordOnlineShareActivity.this)
-                            .subscribe(mMessageListener)
-                            .addOnCompleteListener(new OnCompleteListener<Void>() {
-                                @Override
-                                public void onComplete(@NonNull Task<Void> task) {
-                                    if (task.isSuccessful()) {
-                                        Log.d(TAG, "Received medical record");
+                        Nearby.getMessagesClient(NearbyRecordOnlineShareActivity.this)
+                                .subscribe(mMessageListener)
+                                .addOnCompleteListener(new OnCompleteListener<Void>() {
+                                    @Override
+                                    public void onComplete(@NonNull Task<Void> task) {
+                                        if (task.isSuccessful()) {
+                                            Log.d(TAG, "Received medical record");
+                                        }
+                                        else {
+                                            Log.d(TAG, "Unable to receive medical record");
+                                        }
                                     }
-                                }
-                            });
+                                });
+
+                        showProgressDialog();
+
+                    } else {
+                        snackbarNotify(view, "Please enter the passcode first");
+                    }
+
                     // END
                 }
             });
@@ -218,54 +250,22 @@ public class NearbyRecordOnlineShareActivity extends BaseActivity implements Dec
     }
 
     private void displayRecord(MedicalHistoryRecord medicalHistoryRecord) {
-        TextView nameView = findViewById(R.id.name);
-        TextView dobView = findViewById(R.id.dob);
-        TextView sexView = findViewById(R.id.sex);
-        TextView marital_statusView = findViewById(R.id.marital_status);
-        TextView occupationView = findViewById(R.id.occupation);
-        TextView contactView = findViewById(R.id.contact);
-        TextView allergiesView = findViewById(R.id.allergies);
-        TextView diseasesView = findViewById(R.id.pastdiseases);
-        TextView fatherView = findViewById(R.id.father);
-        TextView motherView = findViewById(R.id.mother);
-        TextView siblingView = findViewById(R.id.sibling);
-        TextView alcoholView = findViewById(R.id.Alcohol);
-        TextView cannabisView = findViewById(R.id.Cannabis);
-        TextView commentsView = findViewById(R.id.comments);
-
-        nameView.setText(medicalHistoryRecord.getName());
-        dobView.setText(medicalHistoryRecord.getDob());
-        sexView.setText(medicalHistoryRecord.getSex());
-        marital_statusView.setText(medicalHistoryRecord.getMarital_status());
-        occupationView.setText(medicalHistoryRecord.getOccupation());
-        contactView.setText(medicalHistoryRecord.getContact());
-        allergiesView.setText(medicalHistoryRecord.getAllergies());
-
-        StringBuilder diseaseBuilder = new StringBuilder();
-        String[] diseases = medicalHistoryRecord.getDiseases().split(",");
-
-        for (String disease : diseases) {
-            if (diseaseBuilder.length() > 0) {
-                diseaseBuilder.append(", ");
-            }
-            diseaseBuilder.append(disease);
-        }
-
-        diseasesView.setText(diseaseBuilder.toString());
-
-        HashMap<String, String> family_diseases = medicalHistoryRecord.getFamily_diseases();
-        fatherView.setText(family_diseases.get(Constant.MEDICAL_RECORD_FAMILY_FATHER_KEY));
-        motherView.setText(family_diseases.get(Constant.MEDICAL_RECORD_FAMILY_MOTHER_KEY));
-        siblingView.setText(family_diseases.get(Constant.MEDICAL_RECORD_FAMILY_SIBLING_KEY));
-
-        HashMap<String, String> habits = medicalHistoryRecord.getHabits();
-
-        alcoholView.setText(habits.get(Constant.MEDICAL_RECORD_HABIT_ALCOHOL_KEY));
-        cannabisView.setText(habits.get(Constant.MEDICAL_RECORD_HABIT_CANNABIS_KEY));
-
-        commentsView.setText(medicalHistoryRecord.getComments());
-
-
+        findViewById(R.id.receive_record_component).setVisibility(View.VISIBLE);
+        ((TextView) findViewById(R.id.name)).setText(medicalHistoryRecord.getName());
+        ((TextView) findViewById(R.id.dob)).setText(medicalHistoryRecord.getDob());
+        ((TextView) findViewById(R.id.sex)).setText(medicalHistoryRecord.getSex());
+        ((TextView) findViewById(R.id.marital_status)).setText(medicalHistoryRecord.getMarital_status());
+        ((TextView) findViewById(R.id.occupation)).setText(medicalHistoryRecord.getOccupation());
+        ((TextView) findViewById(R.id.contact)).setText(medicalHistoryRecord.getContact());
+        ((TextView) findViewById(R.id.allergies)).setText(medicalHistoryRecord.getAllergies());
+        ((TextView) findViewById(R.id.pastdiseases)).setText(medicalHistoryRecord.getDiseases());
+        ((TextView) findViewById(R.id.father)).setText(medicalHistoryRecord.getFamily_diseases().get(Constant.MEDICAL_RECORD_FAMILY_FATHER_KEY));
+        ((TextView) findViewById(R.id.mother)).setText(medicalHistoryRecord.getFamily_diseases().get(Constant.MEDICAL_RECORD_FAMILY_MOTHER_KEY));
+        ((TextView) findViewById(R.id.sibling)).setText(medicalHistoryRecord.getFamily_diseases().get(Constant.MEDICAL_RECORD_FAMILY_SIBLING_KEY));
+        ((TextView) findViewById(R.id.Alcohol)).setText(medicalHistoryRecord.getHabits().get(Constant.MEDICAL_RECORD_HABIT_ALCOHOL_KEY));
+        ((TextView) findViewById(R.id.Cannabis)).setText(medicalHistoryRecord.getHabits().get(Constant.MEDICAL_RECORD_HABIT_CANNABIS_KEY));
+        ((TextView) findViewById(R.id.comments)).setText(medicalHistoryRecord.getComments());
+        hideProgressDialog();
     }
     private Message secureMedicalRecordToMessage(MedicalHistoryRecord medicalHistoryRecord, String passcode) {
         // TODO: Task 2.1.2
@@ -282,8 +282,9 @@ public class NearbyRecordOnlineShareActivity extends BaseActivity implements Dec
         // BEGIN
         RNCryptorNative rnCryptorNative = new RNCryptorNative();
         Gson gson  = new Gson();
-        String decryptedMessageJson = rnCryptorNative.decrypt(message.toString(), passcode);
-        return gson.fromJson(decryptedMessageJson, MedicalHistoryRecord.class);
+        String messageContent = new String(message.getContent());
+        String decryptedMessage = rnCryptorNative.decrypt(messageContent, passcode);
+        return gson.fromJson(decryptedMessage, MedicalHistoryRecord.class);
         // END
     }
 

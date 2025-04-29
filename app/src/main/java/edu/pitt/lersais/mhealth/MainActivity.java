@@ -104,7 +104,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     } else if (id == 1) {
                         moveToNearbyOnline();
                     } else if (id == 2) {
-//                        moveToNearbyOffline();
+                        moveToNearbyOffline();
                     }
                 }
             });
@@ -118,12 +118,12 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         overridePendingTransition(R.anim.push_left_in, R.anim.push_left_out);
     }
 
-//    private void moveToNearbyOffline() {
-//        Intent intent = new Intent(MainActivity.this,
-//                NearbyRecordOfflineShareActivity.class);
-//        startActivity(intent);
-//        overridePendingTransition(R.anim.push_left_in, R.anim.push_left_out);
-//    }
+    private void moveToNearbyOffline() {
+        Intent intent = new Intent(MainActivity.this,
+                NearbyRecordOfflineShareActivity.class);
+        startActivity(intent);
+        overridePendingTransition(R.anim.push_left_in, R.anim.push_left_out);
+    }
 
     private void moveToMedicalRecord() {
         final String FIREBASE_DATABASE = "MedicalHistory";
@@ -295,9 +295,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     MainActivity.this.signOut();
                     return true;
                 } else if (selectModel.getMenuName() == R.string.expandable_menu_send) {
-//                    Intent intent = new Intent(MainActivity.this, NearbyRecordOfflineShareActivity.class);
-//                    startActivity(intent);
-//                    overridePendingTransition(R.anim.push_left_in, R.anim.push_left_out);
+                    Intent intent = new Intent(MainActivity.this, NearbyRecordOfflineShareActivity.class);
+                    startActivity(intent);
+                    overridePendingTransition(R.anim.push_left_in, R.anim.push_left_out);
                     return true;
                 } else if (selectModel.getMenuName() == R.string.expandable_menu_share) {
                     Intent intent = new Intent(MainActivity.this, NearbyRecordOnlineShareActivity.class);
