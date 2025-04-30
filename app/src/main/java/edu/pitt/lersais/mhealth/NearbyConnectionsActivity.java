@@ -41,7 +41,7 @@ import java.util.Set;
  * A class that connects to Nearby Connections and provides convenience methods and callbacks.
  * The code is from google android samples
  */
-public abstract class NearbyConnectionsActivity extends AppCompatActivity {
+public abstract class NearbyConnectionsActivity extends BaseActivity {
 
     private static final String TAG = "NearbyConnActivity";
 
@@ -678,4 +678,6 @@ public abstract class NearbyConnectionsActivity extends AppCompatActivity {
             return String.format("Endpoint{id=%s, name=%s}", id, name);
         }
     }
+
+
 }
